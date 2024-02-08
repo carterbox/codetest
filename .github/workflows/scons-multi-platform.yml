@@ -9,35 +9,95 @@ on:
 jobs:
   build:
     runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: ${{ matrix.shell }}
 
     strategy:
-      # Set fail-fast to false to ensure that feedback is delivered for all matrix combinations. Consider changing this to true when your workflow is stable.
+      # Set fail-fast to false to ensure that feedback is delivered for all
+      # matrix combinations. Consider changing this to true when your workflow
+      # is stable.
       fail-fast: false
 
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        python: [3.10]
-        numpy: [1]
-        
+        # TODO: Expand Python targets
+        python: ["3.10"]
+        # TODO: Expand NumPy targets
+        numpy: ["1.26"]
+        conda: [""]
+        # Must use special shell options for setup-miniconda action to properly
+        # activate environments
+        include:
+          - os: ubuntu-latest
+            shell: bash -el {0}
+            compilers: fortran-compiler c-compiler
+            platform: linux
+            arch: "64"
+          - os: macos-latest
+            shell: bash -el {0}
+            compilers: fortran-compiler c-compiler
+            platform: mac
+            arch: "64"
+          - os: windows-latest
+            shell: powershell
+            compilers: m2w64-toolchain
+            platform: win
+            arch: "64"
+          # TODO: Fix scons autodetection of MacOS ARM architecture
+          # - os: macos-14
+          #   shell: bash -el {0}
+          #   compilers: fortran-compiler c-compiler
+          #   platform: mac
+          #   arch: "arm"
+          #   conda: latest
+          # TODO: Cross-compile for ARM Linux
+          # - os: ubuntu-latest
+          #   arch: arm
+
     steps:
     - uses: actions/checkout@v3
 
-    - name: Set up Python 3.10
-      uses: actions/setup-python@v3
+    - uses: conda-incubator/setup-miniconda@v3
       with:
-        python-version: ${{ python }}
-  
-    - name: Add conda to system path
+        activate-environment: GSAS
+        auto-update-conda: false
+        channels: conda-forge
+        python-version: ${{ matrix.python }}
+        miniforge-version: ${{ matrix.conda }}
+
+    - name: Remove defaults from channels
       run: |
-        # $CONDA is an environment variable pointing to the root of the miniconda directory
-        echo $CONDA/bin >> $GITHUB_PATH
-    
+        conda config --remove channels defaults
+
     - name: Install dependencies
-      run: |
-        conda env update --name base fortran-compiler c-compiler scons numpy=${{ numpy }} python=${{ python }} meson pkg-config ninja
+      run: >
+        conda install ${{ matrix.compilers }} scons
+        numpy=${{ matrix.numpy }} python=${{ matrix.python }}
+        meson pkg-config ninja
 
     - name: Build
       run: |
         cd fsource
-        scons
-      
+        scons -Q
+
+    - name: Create archive of binaries on Unix
+      if: matrix.os != 'windows-latest'
+      run: |
+        cd bin
+        ls
+        zip ${{ matrix.platform }}_${{ matrix.arch }}_p${{ matrix.python }}_n${{ matrix.numpy }}.zip *
+
+    - name: Create archive of binaries on Windows
+      if: matrix.os == 'windows-latest'
+      run: |
+        cd bin
+        dir
+        Compress-Archive -Path * -DestinationPath .\${{ matrix.platform }}_${{ matrix.arch }}_p${{ matrix.python }}_n${{ matrix.numpy }}.zip
+
+    # - name: Upload files as artifacts to the release
+    #   uses: softprops/action-gh-release@v0.1.14
+    #   with:
+    #     files: |
+    #       ${{ matrix.platform }}_${{ matrix.arch }}_p${{ matrix.python }}_n${{ matrix.numpy }}.zip
+    #     token: ${{ inputs.token }}
