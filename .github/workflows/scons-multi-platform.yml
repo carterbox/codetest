@@ -41,9 +41,11 @@ jobs:
             shell: powershell
             compilers: m2w64-toolchain
             platform: win
-          # TODO: Cross-compile for Apple Silicon
-          # - os: macos-latest
-          #   arch: arm
+          - os: macos-14
+            shell: bash -el {0}
+            compilers: fortran-compiler c-compiler
+            platform: mac
+            arch: arm
           # TODO: Cross-compile for ARM Linux
           # - os: ubuntu-latest
           #   arch: arm
