@@ -1,0 +1,43 @@
+name: Scons on multiple platforms
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      # Set fail-fast to false to ensure that feedback is delivered for all matrix combinations. Consider changing this to true when your workflow is stable.
+      fail-fast: false
+
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python: [3.10]
+        numpy: [1]
+        
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v3
+      with:
+        python-version: ${{ python }}
+  
+    - name: Add conda to system path
+      run: |
+        # $CONDA is an environment variable pointing to the root of the miniconda directory
+        echo $CONDA/bin >> $GITHUB_PATH
+    
+    - name: Install dependencies
+      run: |
+        conda env update --name base fortran-compiler c-compiler scons numpy=${{ numpy }} python=${{ python }} meson pkg-config ninja
+
+    - name: Build
+      run: |
+        cd fsource
+        scons
+      
