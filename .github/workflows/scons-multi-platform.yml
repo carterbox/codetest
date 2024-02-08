@@ -25,7 +25,6 @@ jobs:
         python: ["3.10"]
         # TODO: Expand NumPy targets
         numpy: ["1.26"]
-        arch: ["64"]
         conda: [""]
         # Must use special shell options for setup-miniconda action to properly
         # activate environments
@@ -34,20 +33,24 @@ jobs:
             shell: bash -el {0}
             compilers: fortran-compiler c-compiler
             platform: linux
+            arch: "64"
           - os: macos-latest
             shell: bash -el {0}
             compilers: fortran-compiler c-compiler
             platform: mac
+            arch: "64"
           - os: windows-latest
             shell: powershell
             compilers: m2w64-toolchain
             platform: win
-          - os: macos-14
-            shell: bash -el {0}
-            compilers: fortran-compiler c-compiler
-            platform: mac
-            arch: arm
-            conda: latest
+            arch: "64"
+          # TODO: Fix scons autodetection of MacOS ARM architecture
+          # - os: macos-14
+          #   shell: bash -el {0}
+          #   compilers: fortran-compiler c-compiler
+          #   platform: mac
+          #   arch: "arm"
+          #   conda: latest
           # TODO: Cross-compile for ARM Linux
           # - os: ubuntu-latest
           #   arch: arm
