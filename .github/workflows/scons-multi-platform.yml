@@ -3,8 +3,14 @@ name: Scons on multiple platforms
 on:
   push:
     branches: [ "master" ]
+    paths:
+      - "fsource/**"
+      - ".github/workflows/**"
   pull_request:
     branches: [ "master" ]
+    paths:
+      - "fsource/**"
+      - ".github/workflows/**"
 
 jobs:
   build:
